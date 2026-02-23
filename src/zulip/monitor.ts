@@ -3,6 +3,7 @@ import type { OpenClawConfig, ReplyPayload, RuntimeEnv } from "openclaw/plugin-s
 import { createReplyPrefixOptions } from "openclaw/plugin-sdk";
 import { getZulipRuntime } from "../runtime.js";
 import {
+  listEnabledZulipAccounts,
   resolveZulipAccount,
   type ResolvedZulipAccount,
   type ResolvedZulipReactions,
@@ -973,6 +974,64 @@ export async function monitorZulipProvider(
       });
       opts.statusSink?.({ lastInboundAt: Date.now() });
 
+      // --- Mention gate (must run before any side effects) ---
+      const route = core.channel.routing.resolveAgentRoute({
+        cfg,
+        channel: "zulip",
+        accountId: account.accountId,
+        peer: { kind: "channel" as const, id: stream },
+      });
+      const mentionRegexes = core.channel.mentions.buildMentionRegexes(cfg, route.agentId);
+      const cleanedForMentions = content.replace(/@\*\*([^*]+)\*\*/g, "@$1");
+      const wasMentioned = core.channel.mentions.matchesMentionPatterns(
+        cleanedForMentions,
+        mentionRegexes,
+      );
+
+      if (!account.alwaysReply && !wasMentioned) {
+        logger.debug?.(
+          `[${account.accountId}] skipping message in ${stream}#${topic} (not mentioned)`,
+        );
+        return;
+      }
+
+      // For alwaysReply bots: defer when another bot is explicitly @mentioned
+      // (and this bot is not), so the mentioned bot handles the message instead.
+      if (account.alwaysReply && !wasMentioned) {
+        const otherAccounts = listEnabledZulipAccounts(cfg).filter(
+          (a) => a.accountId !== account.accountId && !a.alwaysReply,
+        );
+        for (const other of otherAccounts) {
+          const otherRoute = core.channel.routing.resolveAgentRoute({
+            cfg,
+            channel: "zulip",
+            accountId: other.accountId,
+            peer: { kind: "channel" as const, id: stream },
+          });
+          const otherRegexes = core.channel.mentions.buildMentionRegexes(cfg, otherRoute.agentId);
+          if (core.channel.mentions.matchesMentionPatterns(cleanedForMentions, otherRegexes)) {
+            logger.debug?.(
+              `[${account.accountId}] deferring to ${other.accountId} in ${stream}#${topic}`,
+            );
+            return;
+          }
+        }
+      }
+      // --- End mention gate ---
+
+      // --- Notification Bot filter: suppress LLM dispatch for "topic resolved" ---
+      // These are system notifications, not user messages. The workflow reaction
+      // (if enabled) already acknowledges them; no text reply needed.
+      if (
+        msg.sender_email === "notification-bot@zulip.com" &&
+        /has marked this topic as resolved/.test(content)
+      ) {
+        logger.debug?.(
+          `[${account.accountId}] skipping reply for topic-resolved notification in ${stream}#${topic}`,
+        );
+        return;
+      }
+
       // Per-handler delivery signal: allows reply delivery to complete even if the monitor
       // is stopping (e.g. gateway restart). Without this, in-flight HTTP calls to Zulip get
       // aborted immediately, wasting the LLM tokens already spent generating the response.
@@ -1082,12 +1141,6 @@ export async function monitorZulipProvider(
         return;
       }
 
-      const route = core.channel.routing.resolveAgentRoute({
-        cfg,
-        channel: "zulip",
-        accountId: account.accountId,
-        peer: { kind: "channel", id: stream },
-      });
       const baseSessionKey = route.sessionKey;
       const canonicalTopicKey = resolveCanonicalTopicSessionKey({
         aliasesByStream: topicAliasesByStream,
@@ -1100,13 +1153,6 @@ export async function monitorZulipProvider(
       const from = `zulip:channel:${stream}`;
       const senderName =
         msg.sender_full_name?.trim() || msg.sender_email?.trim() || String(msg.sender_id);
-
-      const mentionRegexes = core.channel.mentions.buildMentionRegexes(cfg, route.agentId);
-      const cleanedForMentions = content.replace(/@\*\*([^*]+)\*\*/g, "@$1");
-      const wasMentioned = core.channel.mentions.matchesMentionPatterns(
-        cleanedForMentions,
-        mentionRegexes,
-      );
 
       const body = core.channel.reply.formatInboundEnvelope({
         channel: "Zulip",
@@ -2054,6 +2100,22 @@ export async function monitorZulipProvider(
         `Zulip streams allowlist missing for account "${account.accountId}" (set channels.zulip.streams)`,
       );
     }
+
+    // Send a one-time startup notice for the primary (alwaysReply) account.
+    const startupNoticeTopic = (cfg.channels?.zulip as Record<string, unknown> | undefined)
+      ?.restartNoticeTopic as string | undefined;
+    if (account.alwaysReply && startupNoticeTopic && plan.length > 0) {
+      sendZulipStreamMessage({
+        auth,
+        stream: plan[0].stream,
+        topic: startupNoticeTopic,
+        content: "♻️ Gateway restarted — all systems online.",
+        abortSignal,
+      }).catch((err) => {
+        logger.debug?.(`[${account.accountId}] startup notice failed: ${String(err)}`);
+      });
+    }
+
     await Promise.all(plan.map((entry) => pollStreamQueue(entry.stream)));
   };
 
