@@ -3,8 +3,10 @@ import {
   buildKeepaliveMessageContent,
   createBestEffortShutdownNoticeSender,
   startPeriodicKeepalive,
-} from "./monitor.js";
+} from "./keepalive.js";
 
+// spec: monitor.md ## Keepalive
+// spec: monitor.md ## Shutdown Notice
 describe("monitor keepalive + shutdown helpers", () => {
   afterEach(() => {
     vi.useRealTimers();

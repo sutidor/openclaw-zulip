@@ -36,6 +36,8 @@ vi.mock("../runtime.js", () => ({
 
 vi.mock("./accounts.js", () => ({
   resolveZulipAccount: mocks.resolveZulipAccount,
+  listEnabledZulipAccounts: () => [mocks.resolveZulipAccount()],
+  resolveDefaultZulipAccountId: () => "default",
 }));
 
 vi.mock("./client.js", () => ({
@@ -76,6 +78,7 @@ vi.mock("./inflight-checkpoints.js", () => ({
 
 import { monitorZulipProvider } from "./monitor.js";
 
+// spec: message-handling.md ## Cleanup
 describe("monitorZulipProvider cleanup race", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -199,7 +202,7 @@ describe("monitorZulipProvider cleanup race", () => {
     });
 
     mocks.buildZulipQueuePlan.mockReturnValue([{ stream: "marcel" }]);
-    mocks.buildZulipRegisterNarrow.mockReturnValue(JSON.stringify([["stream", "marcel"]]));
+    mocks.buildZulipRegisterNarrow.mockReturnValue(JSON.stringify([["channel", "marcel"]]));
 
     let eventsPollCount = 0;
     mocks.zulipRequest.mockImplementation(

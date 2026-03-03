@@ -5,6 +5,11 @@ import { resolveZulipAccount } from "./zulip/accounts.js";
 import { normalizeEmojiName } from "./zulip/normalize.js";
 import { parseZulipTarget } from "./zulip/targets.js";
 
+// spec: dedup-normalize.md ## Normalization
+// spec: dedup-normalize.md ## Target Parsing
+// spec: accounts.md ## Defaults
+// spec: accounts.md ## Group Mentions
+// spec: plugin-interface.md ## Outbound
 describe("zulipPlugin", () => {
   it("normalizes emoji names", () => {
     expect(normalizeEmojiName(":eyes:")).toBe("eyes");

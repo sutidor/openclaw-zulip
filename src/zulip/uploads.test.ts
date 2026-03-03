@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { extractZulipUploadUrls } from "./uploads.js";
 
+// spec: uploads.md ## URL Extraction
+// spec: uploads.md ## Origin Validation
 describe("zulip uploads", () => {
   it("extracts relative /user_uploads links", () => {
     const urls = extractZulipUploadUrls(

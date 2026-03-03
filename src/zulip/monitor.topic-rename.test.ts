@@ -36,6 +36,8 @@ vi.mock("../runtime.js", () => ({
 
 vi.mock("./accounts.js", () => ({
   resolveZulipAccount: mocks.resolveZulipAccount,
+  listEnabledZulipAccounts: () => [mocks.resolveZulipAccount()],
+  resolveDefaultZulipAccountId: () => "default",
 }));
 
 vi.mock("./client.js", () => ({
@@ -200,7 +202,7 @@ function createHarness(events: ZulipQueueEvent[]) {
   });
 
   mocks.buildZulipQueuePlan.mockReturnValue([{ stream: "marcel" }]);
-  mocks.buildZulipRegisterNarrow.mockReturnValue(JSON.stringify([["stream", "marcel"]]));
+  mocks.buildZulipRegisterNarrow.mockReturnValue(JSON.stringify([["channel", "marcel"]]));
   mocks.downloadZulipUploads.mockResolvedValue([]);
   mocks.resolveOutboundMedia.mockResolvedValue({
     buffer: Buffer.from(""),
@@ -290,6 +292,8 @@ function makeMessage(messageId: number, topic: string): ZulipEventMessage {
   };
 }
 
+// spec: monitor.md ## Topic Rename Events
+// spec: monitor.md ## Topic Key Hashing
 describe("monitorZulipProvider topic rename session continuity", () => {
   beforeEach(() => {
     vi.clearAllMocks();

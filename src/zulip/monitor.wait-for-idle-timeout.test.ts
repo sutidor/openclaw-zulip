@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { waitForDispatcherIdleWithTimeout } from "./monitor.js";
+import { waitForDispatcherIdleWithTimeout } from "./backoff.js";
 
+// spec: http-client.md ## Dispatcher Idle Wait
 describe("waitForDispatcherIdleWithTimeout", () => {
   afterEach(() => {
     vi.useRealTimers();

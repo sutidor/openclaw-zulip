@@ -42,6 +42,7 @@ import {
 import { addZulipReaction } from "./reactions.js";
 import { sendZulipStreamMessage } from "./send.js";
 
+// spec: reactions.md ## Reaction Buttons
 describe("reaction-buttons", () => {
   const mockAuth: ZulipAuth = {
     baseUrl: "https://zulip.example",

@@ -38,6 +38,9 @@ function createCheckpoint(overrides?: Partial<ZulipInFlightCheckpoint>): ZulipIn
   };
 }
 
+// spec: recovery.md ## Checkpoint Persistence
+// spec: recovery.md ## Validation
+// spec: recovery.md ## Staleness
 describe("zulip inflight checkpoints", () => {
   it("writes, loads, and clears checkpoint files", async () => {
     const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "zulip-checkpoint-"));

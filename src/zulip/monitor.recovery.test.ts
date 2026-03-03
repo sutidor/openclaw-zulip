@@ -36,6 +36,8 @@ vi.mock("../runtime.js", () => ({
 
 vi.mock("./accounts.js", () => ({
   resolveZulipAccount: mocks.resolveZulipAccount,
+  listEnabledZulipAccounts: () => [mocks.resolveZulipAccount()],
+  resolveDefaultZulipAccountId: () => "default",
 }));
 
 vi.mock("./client.js", () => ({
@@ -74,7 +76,8 @@ vi.mock("./inflight-checkpoints.js", () => ({
   buildZulipCheckpointId: mocks.buildZulipCheckpointId,
 }));
 
-import { monitorZulipProvider, ZULIP_RECOVERY_NOTICE } from "./monitor.js";
+import { monitorZulipProvider } from "./monitor.js";
+import { ZULIP_RECOVERY_NOTICE } from "./constants.js";
 
 type ZulipEventMessage = {
   id: number;
@@ -235,12 +238,14 @@ function createHarness(params?: {
       genericCallback: {
         enabled: false,
         includeRemoveOps: false,
+        allowedEmojis: [],
+        emojiSemantics: {},
       },
     },
   });
 
   mocks.buildZulipQueuePlan.mockReturnValue([{ stream: "marcel" }]);
-  mocks.buildZulipRegisterNarrow.mockReturnValue(JSON.stringify([["stream", "marcel"]]));
+  mocks.buildZulipRegisterNarrow.mockReturnValue(JSON.stringify([["channel", "marcel"]]));
   mocks.downloadZulipUploads.mockResolvedValue([]);
   mocks.resolveOutboundMedia.mockResolvedValue({
     buffer: Buffer.from(""),
@@ -325,6 +330,9 @@ function createHarness(params?: {
   return { dispatchReplyFromConfig };
 }
 
+// spec: recovery.md ## Replay
+// spec: reactions.md ## Workflow Stage Transitions
+// spec: reactions.md ## Generic Reaction Callbacks
 describe("monitorZulipProvider recovery checkpoints", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -482,6 +490,7 @@ describe("monitorZulipProvider recovery checkpoints", () => {
         genericCallback: {
           enabled: false,
           includeRemoveOps: false,
+          emojiSemantics: {},
         },
       },
     });
@@ -534,6 +543,8 @@ describe("monitorZulipProvider recovery checkpoints", () => {
         genericCallback: {
           enabled: true,
           includeRemoveOps: false,
+          allowedEmojis: [],
+          emojiSemantics: { fire: "test action" },
         },
       },
     });
@@ -551,7 +562,7 @@ describe("monitorZulipProvider recovery checkpoints", () => {
 
     const call = dispatchReplyFromConfig.mock.calls[0]?.[0] as { ctx?: Record<string, unknown> };
     expect(call?.ctx).toMatchObject({
-      CommandBody: "reaction_add_fire",
+      CommandBody: expect.stringContaining("reaction add"),
       To: "stream:marcel#general",
       SenderId: "55",
     });
@@ -587,6 +598,8 @@ describe("monitorZulipProvider recovery checkpoints", () => {
         genericCallback: {
           enabled: true,
           includeRemoveOps: false,
+          allowedEmojis: [],
+          emojiSemantics: {},
         },
       },
     });

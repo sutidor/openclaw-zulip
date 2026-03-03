@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import { computeZulipMonitorBackoffMs } from "./monitor.js";
+import { computeZulipMonitorBackoffMs } from "./backoff.js";
 
+// spec: http-client.md ## Monitor-Level Backoff
 describe("computeZulipMonitorBackoffMs", () => {
   it("respects retry-after when higher than exponential", () => {
     vi.spyOn(Math, "random").mockReturnValue(0);

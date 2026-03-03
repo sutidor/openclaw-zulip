@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("./client.js", () => {
   return {
-    zulipRequest: vi.fn(async () => ({ result: "success", emoji: { eyes: {}, thumbs_up: {} } })),
+    zulipRequest: vi.fn(async () => ({ result: "success", emoji: { "1": { name: "eyes" }, "2": { name: "thumbs_up" } } })),
     zulipRequestWithRetry: vi.fn(async () => ({ result: "success" })),
   };
 });
@@ -19,6 +19,7 @@ function makeAuth(id = "default"): ZulipAuth {
   };
 }
 
+// spec: reactions.md ## Emoji Resolution
 describe("resolveEmojiNameCandidates", () => {
   it("maps common unicode emoji to deterministic Zulip names", () => {
     expect(resolveEmojiNameCandidates("👍")).toEqual(["thumbs_up", "+1", "👍"]);
@@ -26,6 +27,7 @@ describe("resolveEmojiNameCandidates", () => {
   });
 });
 
+// spec: reactions.md ## Remove Reaction
 describe("removeZulipReaction", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -48,6 +50,8 @@ describe("removeZulipReaction", () => {
   });
 });
 
+// spec: reactions.md ## Add Reaction
+// spec: reactions.md ## Emoji Directory
 describe("addZulipReaction", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -72,7 +76,7 @@ describe("addZulipReaction", () => {
   it("maps unicode emoji to Zulip emoji names when available", async () => {
     vi.mocked(zulipRequest).mockResolvedValue({
       result: "success",
-      emoji: { thumbs_up: {} },
+      emoji: { "1": { name: "thumbs_up" } },
     });
 
     await addZulipReaction({
@@ -92,7 +96,7 @@ describe("addZulipReaction", () => {
     const log = vi.fn();
     vi.mocked(zulipRequest).mockResolvedValue({
       result: "success",
-      emoji: { eyes: {} },
+      emoji: { "1": { name: "eyes" } },
     });
 
     await expect(
