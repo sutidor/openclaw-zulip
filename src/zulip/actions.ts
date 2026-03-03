@@ -7,6 +7,8 @@ import { normalizeStreamName } from "./normalize.js";
 import { normalizeTopic } from "./normalize.js";
 import { sendWithReactionButtons, type ReactionButtonOption } from "./reaction-buttons.js";
 import { addZulipReaction, removeZulipReaction } from "./reactions.js";
+import { trackToolSend } from "./dispatch-state.js";
+import { getMentionDisplayNames, normalizeMentionText } from "./mention-cache.js";
 import { sendZulipStreamMessage } from "./send.js";
 import { parseZulipTarget } from "./targets.js";
 import { uploadZulipFile, resolveOutboundMedia } from "./uploads.js";
@@ -123,10 +125,12 @@ async function handleSend(params: ActionParams, cfg: unknown, accountId?: string
     });
   }
 
-  const content = [message, uploadedUrl].filter(Boolean).join("\n\n");
-  if (!content) throw new Error("Nothing to send (no message or media)");
+  const rawContent = [message, uploadedUrl].filter(Boolean).join("\n\n");
+  if (!rawContent) throw new Error("Nothing to send (no message or media)");
 
+  const content = normalizeMentionText(rawContent, getMentionDisplayNames());
   const result = await sendZulipStreamMessage({ auth, stream, topic, content });
+  trackToolSend(account.accountId, stream, topic);
   return { ok: true, action: "send", messageId: String(result.id ?? "unknown") };
 }
 
