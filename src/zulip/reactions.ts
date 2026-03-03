@@ -52,15 +52,18 @@ function collectEmojiNames(mapLike: unknown, target: Set<string>) {
   if (!mapLike || typeof mapLike !== "object") {
     return;
   }
-  for (const [name, value] of Object.entries(mapLike as Record<string, unknown>)) {
-    const normalized = normalizeEmojiName(name);
-    if (normalized) {
-      target.add(normalized);
-    }
+  for (const value of Object.values(mapLike as Record<string, unknown>)) {
     if (!value || typeof value !== "object") {
       continue;
     }
-    const aliases = (value as { aliases?: unknown }).aliases;
+    const entry = value as Record<string, unknown>;
+    if (typeof entry.name === "string") {
+      const normalized = normalizeEmojiName(entry.name);
+      if (normalized) {
+        target.add(normalized);
+      }
+    }
+    const aliases = entry.aliases;
     if (Array.isArray(aliases)) {
       for (const alias of aliases) {
         if (typeof alias !== "string") {
@@ -89,12 +92,11 @@ async function getAvailableEmojiNames(
     const response = await zulipRequest<Record<string, unknown>>({
       auth,
       method: "GET",
-      path: "/api/v1/emoji",
+      path: "/api/v1/realm/emoji",
       abortSignal,
     });
     const names = new Set<string>();
     collectEmojiNames(response?.emoji, names);
-    collectEmojiNames(response?.realm_emoji, names);
     if (names.size > 0) {
       emojiDirectoryCache.set(cacheKey, {
         expiresAt: Date.now() + EMOJI_DIRECTORY_CACHE_TTL_MS,
