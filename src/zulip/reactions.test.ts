@@ -137,3 +137,67 @@ describe("addZulipReaction", () => {
     expect(triedEmojiNames).toContain("+1");
   });
 });
+
+// spec: reactions.md ## Emoji Directory Cache
+describe("emoji directory caching", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("caches emoji directory per auth identity", async () => {
+    vi.mocked(zulipRequest).mockResolvedValue({
+      result: "success",
+      emoji: { "1": { name: "eyes" }, "2": { name: "check" } },
+    });
+
+    const auth = makeAuth("cache-1");
+    await addZulipReaction({ auth, messageId: 1, emojiName: "eyes" });
+    await addZulipReaction({ auth, messageId: 2, emojiName: "eyes" });
+
+    // Emoji directory fetched once, second call uses cache
+    expect(zulipRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it("fetches independently for different auth identities", async () => {
+    vi.mocked(zulipRequest).mockResolvedValue({
+      result: "success",
+      emoji: { "1": { name: "eyes" } },
+    });
+
+    await addZulipReaction({ auth: makeAuth("cache-a"), messageId: 1, emojiName: "eyes" });
+    await addZulipReaction({ auth: makeAuth("cache-b"), messageId: 2, emojiName: "eyes" });
+
+    // Each auth identity fetches its own directory
+    expect(zulipRequest).toHaveBeenCalledTimes(2);
+  });
+
+  it("reads emoji .name from directory entry objects", async () => {
+    vi.mocked(zulipRequest).mockResolvedValue({
+      result: "success",
+      emoji: {
+        "1": { name: "custom_emoji", id: "1", deactivated: false },
+        "2": { name: "another_one", id: "2", deactivated: false },
+      },
+    });
+
+    const log = vi.fn();
+    await addZulipReaction({ auth: makeAuth("parse"), messageId: 1, emojiName: "custom_emoji", log });
+    // Should succeed — custom_emoji is in the directory
+    expect(zulipRequestWithRetry).toHaveBeenCalledWith(
+      expect.objectContaining({ form: { emoji_name: "custom_emoji" } }),
+    );
+  });
+
+  it("fetches from /api/v1/realm/emoji", async () => {
+    vi.mocked(zulipRequest).mockResolvedValue({
+      result: "success",
+      emoji: { "1": { name: "eyes" } },
+    });
+
+    await addZulipReaction({ auth: makeAuth("path-check"), messageId: 1, emojiName: "eyes" });
+
+    expect(zulipRequest).toHaveBeenCalledWith(
+      expect.objectContaining({ path: "/api/v1/realm/emoji" }),
+    );
+  });
+});
