@@ -34,6 +34,8 @@ export type ResolvedZulipReactionWorkflow = {
 export type ResolvedZulipGenericReactionCallback = {
   enabled: boolean;
   includeRemoveOps: boolean;
+  allowedEmojis: string[];
+  emojiSemantics: Record<string, string>;
 };
 
 export type ResolvedZulipReactions = {
@@ -71,7 +73,7 @@ const DEFAULT_ALWAYS_REPLY = true;
 const DEFAULT_REACTIONS: ResolvedZulipReactions = {
   enabled: true,
   onStart: "eyes",
-  onSuccess: "check",
+  onSuccess: "check_mark",
   onFailure: "warning",
   clearOnFinish: true,
   workflow: {
@@ -81,14 +83,25 @@ const DEFAULT_REACTIONS: ResolvedZulipReactions = {
     stages: {
       queued: "eyes",
       processing: "eyes",
-      success: "check",
+      success: "check_mark",
       partialSuccess: "warning",
       failure: "warning",
     },
   },
   genericCallback: {
-    enabled: false,
+    enabled: true,
     includeRemoveOps: false,
+    allowedEmojis: ["thumbs_up", "+1", "cross_mark", "x", "repeat", "back", "thinking", "check"],
+    emojiSemantics: {
+      thumbs_up: "approve, execute, \"do it\"",
+      "+1": "approve, execute, \"do it\"",
+      cross_mark: "cancel, reject, stop",
+      x: "cancel, reject, stop",
+      repeat: "retry, redo, \"try again\"",
+      back: "roll back, undo",
+      thinking: "reconsider, elaborate, explain further",
+      check: "approval granted",
+    },
   },
 };
 
@@ -174,8 +187,14 @@ function resolveReactions(config: ZulipReactionConfig | undefined): ResolvedZuli
   } satisfies ResolvedZulipReactionWorkflow;
 
   const genericCallback = {
-    enabled: config.genericCallback?.enabled === true,
+    enabled: config.genericCallback?.enabled !== false,
     includeRemoveOps: config.genericCallback?.includeRemoveOps === true,
+    allowedEmojis: (
+      config.genericCallback?.allowedEmojis ?? DEFAULT_REACTIONS.genericCallback.allowedEmojis
+    )
+      .map((e) => normalizeEmojiName(e))
+      .filter(Boolean),
+    emojiSemantics: config.genericCallback?.emojiSemantics ?? DEFAULT_REACTIONS.genericCallback.emojiSemantics,
   } satisfies ResolvedZulipGenericReactionCallback;
 
   return { enabled, onStart, onSuccess, onFailure, clearOnFinish, workflow, genericCallback };

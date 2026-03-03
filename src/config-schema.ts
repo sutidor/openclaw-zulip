@@ -25,6 +25,8 @@ const GenericReactionCallbackSchema = z
   .object({
     enabled: z.boolean().optional(),
     includeRemoveOps: z.boolean().optional(),
+    allowedEmojis: z.array(z.string()).optional(),
+    emojiSemantics: z.record(z.string(), z.string()).optional(),
   })
   .strict();
 

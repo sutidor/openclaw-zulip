@@ -30,6 +30,19 @@ export type ZulipGenericReactionCallbackConfig = {
    * Defaults to false to avoid noise/loops.
    */
   includeRemoveOps?: boolean;
+  /**
+   * Emoji allowlist for generic reaction callbacks.
+   * When set and non-empty, only reactions with these emoji names trigger a callback.
+   * When empty or omitted, all emojis are accepted (original behavior).
+   * Use Zulip emoji names (e.g. "+1", "check", "cross_mark").
+   */
+  allowedEmojis?: string[];
+  /**
+   * Maps emoji names to human-readable action meanings.
+   * Used in the system prompt when dispatching reaction callbacks.
+   * E.g. { "check": "approval granted", "thumbs_up": "approve, execute" }
+   */
+  emojiSemantics?: Record<string, string>;
 };
 
 export type ZulipReactionConfig = {
