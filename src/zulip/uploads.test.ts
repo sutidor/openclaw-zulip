@@ -1,4 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("openclaw/plugin-sdk", () => ({
+  resolveChannelMediaMaxBytes: () => 5 * 1024 * 1024,
+}));
+
 import { extractZulipUploadUrls } from "./uploads.js";
 
 // spec: uploads.md ## URL Extraction

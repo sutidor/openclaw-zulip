@@ -1,5 +1,23 @@
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("openclaw/plugin-sdk", () => ({
+  DEFAULT_ACCOUNT_ID: "default",
+  normalizeAccountId: (id: string) => id || "default",
+  deleteAccountFromConfigSection: vi.fn(),
+  formatPairingApproveHint: () => "",
+  migrateBaseNameToDefaultAccount: (opts: { cfg: unknown }) => opts.cfg,
+  setAccountEnabledInConfigSection: vi.fn(),
+  resolveChannelMediaMaxBytes: () => 5 * 1024 * 1024,
+  createReplyPrefixOptions: vi.fn(),
+}));
+
+vi.mock("./runtime.js", () => ({
+  getZulipRuntime: () => ({
+    channel: { text: { chunkMarkdownText: (t: string) => [t] } },
+  }),
+}));
+
 import type { OpenClawConfig } from "openclaw/plugin-sdk";
-import { describe, expect, it } from "vitest";
 import { zulipPlugin } from "./channel.js";
 import { resolveZulipAccount } from "./zulip/accounts.js";
 import { normalizeEmojiName } from "./zulip/normalize.js";
