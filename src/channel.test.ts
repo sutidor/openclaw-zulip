@@ -181,6 +181,50 @@ describe("zulipPlugin", () => {
     expect(account.reactions.workflow.stages.failure).toBe("warning");
   });
 
+  // spec: reactions.md ## Generic Reaction Callbacks
+  it("enables generic reaction callbacks by default with allowedEmojis", () => {
+    const cfg: OpenClawConfig = {
+      channels: {
+        zulip: {
+          enabled: true,
+          baseUrl: "https://zulip.example.com",
+          email: "bot@example.com",
+          apiKey: "key",
+          streams: ["marcel-ai"],
+        },
+      },
+    };
+    const account = resolveZulipAccount({ cfg, accountId: "default" });
+    expect(account.reactions.genericCallback.enabled).toBe(true);
+    expect(account.reactions.genericCallback.allowedEmojis.length).toBeGreaterThan(0);
+    expect(account.reactions.genericCallback.emojiSemantics).toBeDefined();
+    expect(typeof account.reactions.genericCallback.emojiSemantics.thumbs_up).toBe("string");
+  });
+
+  it("allows overriding emojiSemantics in config", () => {
+    const cfg: OpenClawConfig = {
+      channels: {
+        zulip: {
+          enabled: true,
+          baseUrl: "https://zulip.example.com",
+          email: "bot@example.com",
+          apiKey: "key",
+          streams: ["marcel-ai"],
+          reactions: {
+            genericCallback: {
+              emojiSemantics: { fire: "urgent" },
+            },
+          },
+        },
+      },
+    };
+    const account = resolveZulipAccount({ cfg, accountId: "default" });
+    // emojiSemantics merges with defaults — "fire" is added on top
+    expect(account.reactions.genericCallback.emojiSemantics.fire).toBe("urgent");
+    // Defaults are still present
+    expect(account.reactions.genericCallback.emojiSemantics.thumbs_up).toBeDefined();
+  });
+
   it("can require mentions when alwaysReply=false", () => {
     const cfg: OpenClawConfig = {
       channels: {
