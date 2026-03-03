@@ -1,4 +1,5 @@
 import { normalizeZulipBaseUrl } from "./normalize.js";
+import { sleep } from "./sleep.js";
 
 export type ZulipAuth = {
   baseUrl: string;
@@ -25,30 +26,6 @@ export type ZulipApiSuccess = {
 function buildAuthHeader(email: string, apiKey: string): string {
   const token = Buffer.from(`${email}:${apiKey}`, "utf8").toString("base64");
   return `Basic ${token}`;
-}
-
-function sleep(ms: number, abortSignal?: AbortSignal): Promise<void> {
-  if (ms <= 0) {
-    return Promise.resolve();
-  }
-  return new Promise((resolve, reject) => {
-    let onAbort: (() => void) | undefined;
-    const timer = setTimeout(() => {
-      if (onAbort && abortSignal) {
-        abortSignal.removeEventListener("abort", onAbort);
-      }
-      resolve();
-    }, ms);
-    if (abortSignal) {
-      onAbort = () => {
-        clearTimeout(timer);
-        const err = new Error("aborted");
-        err.name = "AbortError";
-        reject(err);
-      };
-      abortSignal.addEventListener("abort", onAbort, { once: true });
-    }
-  });
 }
 
 async function readJson(res: Response): Promise<unknown> {
