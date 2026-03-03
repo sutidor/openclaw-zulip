@@ -1,1 +1,18 @@
 node_modules/
+
+# Secrets and credentials — never commit these
+.env
+.env.*
+.zuliprc
+*.pem
+*.key
+*.p12
+
+# Editor / OS artifacts
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Build output
+dist/
