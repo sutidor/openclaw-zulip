@@ -7,7 +7,5 @@ export function buildZulipQueuePlan(streams: string[]): ZulipQueuePlanEntry[] {
 }
 
 export function buildZulipRegisterNarrow(stream: string): string {
-  // "stream" is the canonical narrow operator for Zulip's API and works across older deployments.
-  // Newer servers may also accept "channel", but prefer "stream" for compatibility.
-  return JSON.stringify([["stream", stream]]);
+  return JSON.stringify([["channel", stream]]);
 }
