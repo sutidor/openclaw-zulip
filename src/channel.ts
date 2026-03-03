@@ -1,5 +1,7 @@
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
-  buildChannelConfigSchema,
   DEFAULT_ACCOUNT_ID,
   deleteAccountFromConfigSection,
   formatPairingApproveHint,
@@ -8,7 +10,9 @@ import {
   setAccountEnabledInConfigSection,
   type ChannelPlugin,
 } from "openclaw/plugin-sdk";
-import { ZulipConfigSchema } from "./config-schema.js";
+
+const pluginRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const manifest = JSON.parse(readFileSync(resolve(pluginRoot, "openclaw.plugin.json"), "utf-8"));
 import { resolveZulipGroupRequireMention } from "./group-mentions.js";
 import { zulipOnboardingAdapter } from "./onboarding.js";
 import { getZulipRuntime } from "./runtime.js";
@@ -82,7 +86,10 @@ export const zulipPlugin: ChannelPlugin<ResolvedZulipAccount> = {
     ],
   },
   reload: { configPrefixes: ["channels.zulip"] },
-  configSchema: buildChannelConfigSchema(ZulipConfigSchema),
+  configSchema: {
+    schema: manifest.configSchema as Record<string, unknown>,
+    uiHints: manifest.uiHints,
+  },
   config: {
     listAccountIds: (cfg) => listZulipAccountIds(cfg),
     resolveAccount: (cfg, accountId) => resolveZulipAccount({ cfg, accountId }),

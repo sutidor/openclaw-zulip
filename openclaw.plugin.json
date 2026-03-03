@@ -1,9 +1,300 @@
 {
   "id": "zulip",
   "channels": ["zulip"],
+  "uiHints": {
+    "name": {
+      "label": "Account Name",
+      "help": "Display name for this Zulip account."
+    },
+    "enabled": {
+      "label": "Enabled"
+    },
+    "configWrites": {
+      "label": "Allow Config Writes",
+      "help": "Whether this account can modify its own configuration at runtime.",
+      "advanced": true
+    },
+    "baseUrl": {
+      "label": "Zulip Server URL",
+      "placeholder": "https://zulip.example.com"
+    },
+    "email": {
+      "label": "Bot Email",
+      "placeholder": "bot@example.com"
+    },
+    "apiKey": {
+      "label": "API Key",
+      "sensitive": true
+    },
+    "streams": {
+      "label": "Streams",
+      "help": "Zulip streams (channels) the bot listens on."
+    },
+    "alwaysReply": {
+      "label": "Always Reply",
+      "help": "Reply to every message, even without a mention."
+    },
+    "defaultTopic": {
+      "label": "Default Topic"
+    },
+    "textChunkLimit": {
+      "label": "Text Chunk Limit",
+      "help": "Maximum number of characters per message chunk.",
+      "advanced": true
+    },
+    "mediaMaxMb": {
+      "label": "Media Max Size (MB)",
+      "help": "Maximum file upload size in megabytes.",
+      "advanced": true
+    },
+    "reactions.enabled": {
+      "label": "Reactions Enabled"
+    },
+    "reactions.onStart": {
+      "label": "On Start Emoji",
+      "advanced": true
+    },
+    "reactions.onSuccess": {
+      "label": "On Success Emoji",
+      "advanced": true
+    },
+    "reactions.onFailure": {
+      "label": "On Failure Emoji",
+      "advanced": true
+    },
+    "reactions.clearOnFinish": {
+      "label": "Clear Reactions on Finish",
+      "advanced": true
+    },
+    "reactions.workflow.enabled": {
+      "label": "Reaction Workflow Enabled",
+      "advanced": true
+    },
+    "reactions.workflow.replaceStageReaction": {
+      "label": "Replace Stage Reaction",
+      "advanced": true
+    },
+    "reactions.workflow.minTransitionMs": {
+      "label": "Min Transition (ms)",
+      "help": "Minimum time in milliseconds between reaction stage transitions.",
+      "advanced": true
+    },
+    "reactions.workflow.stages.queued": {
+      "label": "Queued Stage Emoji",
+      "advanced": true
+    },
+    "reactions.workflow.stages.processing": {
+      "label": "Processing Stage Emoji",
+      "advanced": true
+    },
+    "reactions.workflow.stages.toolRunning": {
+      "label": "Tool Running Stage Emoji",
+      "advanced": true
+    },
+    "reactions.workflow.stages.retrying": {
+      "label": "Retrying Stage Emoji",
+      "advanced": true
+    },
+    "reactions.workflow.stages.success": {
+      "label": "Success Stage Emoji",
+      "advanced": true
+    },
+    "reactions.workflow.stages.partialSuccess": {
+      "label": "Partial Success Stage Emoji",
+      "advanced": true
+    },
+    "reactions.workflow.stages.failure": {
+      "label": "Failure Stage Emoji",
+      "advanced": true
+    },
+    "reactions.genericCallback.enabled": {
+      "label": "Generic Reaction Callback Enabled",
+      "help": "Enable dispatching callbacks when users react to bot messages."
+    },
+    "reactions.genericCallback.includeRemoveOps": {
+      "label": "Include Remove Operations",
+      "help": "Also fire callbacks when a reaction is removed.",
+      "advanced": true
+    },
+    "reactions.genericCallback.allowedEmojis": {
+      "label": "Allowed Emojis",
+      "help": "Restrict which emojis trigger callbacks. Leave empty to allow all."
+    },
+    "reactions.genericCallback.emojiSemantics": {
+      "label": "Emoji Semantics",
+      "help": "Maps emoji names to human-readable meanings used in system prompts. E.g. { \"check\": \"approval granted\", \"thumbs_up\": \"approve, execute\" }"
+    }
+  },
   "configSchema": {
     "type": "object",
     "additionalProperties": false,
-    "properties": {}
+    "properties": {
+      "name": { "type": "string" },
+      "enabled": { "type": "boolean", "default": true },
+      "configWrites": { "type": "boolean" },
+      "baseUrl": { "type": "string" },
+      "email": { "type": "string" },
+      "apiKey": { "type": "string" },
+      "streams": {
+        "type": "array",
+        "items": { "type": "string" }
+      },
+      "alwaysReply": { "type": "boolean", "default": true },
+      "defaultTopic": { "type": "string", "default": "general chat" },
+      "textChunkLimit": {
+        "type": "integer",
+        "minimum": 1,
+        "default": 10000
+      },
+      "mediaMaxMb": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "reactions": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "enabled": { "type": "boolean", "default": true },
+          "onStart": { "type": "string", "default": "eyes" },
+          "onSuccess": { "type": "string", "default": "check_mark" },
+          "onFailure": { "type": "string", "default": "warning" },
+          "clearOnFinish": { "type": "boolean", "default": true },
+          "workflow": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "enabled": { "type": "boolean", "default": true },
+              "replaceStageReaction": { "type": "boolean", "default": true },
+              "minTransitionMs": {
+                "type": "integer",
+                "minimum": 0,
+                "default": 1500
+              },
+              "stages": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "queued": { "type": "string", "default": "eyes" },
+                  "processing": { "type": "string", "default": "eyes" },
+                  "toolRunning": { "type": "string" },
+                  "retrying": { "type": "string" },
+                  "success": { "type": "string", "default": "check_mark" },
+                  "partialSuccess": { "type": "string", "default": "warning" },
+                  "failure": { "type": "string", "default": "warning" }
+                }
+              }
+            }
+          },
+          "genericCallback": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "enabled": { "type": "boolean", "default": true },
+              "includeRemoveOps": { "type": "boolean", "default": false },
+              "allowedEmojis": {
+                "type": "array",
+                "items": { "type": "string" },
+                "default": ["thumbs_up", "+1", "cross_mark", "x", "repeat", "back", "thinking", "check"]
+              },
+              "emojiSemantics": {
+                "type": "object",
+                "additionalProperties": { "type": "string" },
+                "default": {
+                  "thumbs_up": "approve, execute, \"do it\"",
+                  "+1": "approve, execute, \"do it\"",
+                  "cross_mark": "cancel, reject, stop",
+                  "x": "cancel, reject, stop",
+                  "repeat": "retry, redo, \"try again\"",
+                  "back": "roll back, undo",
+                  "thinking": "reconsider, elaborate, explain further",
+                  "check": "approval granted"
+                }
+              }
+            }
+          }
+        }
+      },
+      "accounts": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "name": { "type": "string" },
+            "enabled": { "type": "boolean" },
+            "configWrites": { "type": "boolean" },
+            "baseUrl": { "type": "string" },
+            "email": { "type": "string" },
+            "apiKey": { "type": "string" },
+            "streams": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "alwaysReply": { "type": "boolean" },
+            "defaultTopic": { "type": "string" },
+            "textChunkLimit": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "mediaMaxMb": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "reactions": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": { "type": "boolean" },
+                "onStart": { "type": "string" },
+                "onSuccess": { "type": "string" },
+                "onFailure": { "type": "string" },
+                "clearOnFinish": { "type": "boolean" },
+                "workflow": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": { "type": "boolean" },
+                    "replaceStageReaction": { "type": "boolean" },
+                    "minTransitionMs": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "stages": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "queued": { "type": "string" },
+                        "processing": { "type": "string" },
+                        "toolRunning": { "type": "string" },
+                        "retrying": { "type": "string" },
+                        "success": { "type": "string" },
+                        "partialSuccess": { "type": "string" },
+                        "failure": { "type": "string" }
+                      }
+                    }
+                  }
+                },
+                "genericCallback": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": { "type": "boolean" },
+                    "includeRemoveOps": { "type": "boolean" },
+                    "allowedEmojis": {
+                      "type": "array",
+                      "items": { "type": "string" }
+                    },
+                    "emojiSemantics": {
+                      "type": "object",
+                      "additionalProperties": { "type": "string" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
   }
 }
