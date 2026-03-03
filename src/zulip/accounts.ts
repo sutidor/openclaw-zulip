@@ -194,7 +194,10 @@ function resolveReactions(config: ZulipReactionConfig | undefined): ResolvedZuli
     )
       .map((e) => normalizeEmojiName(e))
       .filter(Boolean),
-    emojiSemantics: config.genericCallback?.emojiSemantics ?? DEFAULT_REACTIONS.genericCallback.emojiSemantics,
+    emojiSemantics: {
+      ...DEFAULT_REACTIONS.genericCallback.emojiSemantics,
+      ...config.genericCallback?.emojiSemantics,
+    },
   } satisfies ResolvedZulipGenericReactionCallback;
 
   return { enabled, onStart, onSuccess, onFailure, clearOnFinish, workflow, genericCallback };
