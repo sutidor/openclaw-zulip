@@ -8,11 +8,16 @@
     "openclaw.plugin.json",
     "!src/**/*.test.ts"
   ],
+  "scripts": {
+    "test:e2e": "npx tsx e2e/run.ts"
+  },
   "type": "module",
   "dependencies": {
     "zod": "^4.3.6"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  },
   "openclaw": {
     "extensions": [
       "./index.ts"
