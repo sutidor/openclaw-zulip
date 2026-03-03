@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git log --all -p --full-diff -- '*.env' '*.env.*' '.env' '.env.*' '*.pem' '*.key' '*.p12' '*.pfx' 'credentials.*' '*.credentials')",
+      "Bash(git log --all -p --full-diff)",
+      "Bash(git log --all -p --full-diff -- 'src/' '*.ts' '*.js' '*.json' '*.yaml' '*.yml' '*.toml')",
+      "Bash(git log --all -p --full-diff -- 'src/')",
+      "Bash(# Check if node_modules was ever committed \\(it was removed in fba0391\\) git log --all --diff-filter=A --name-only --pretty=format:\"\"%H %s\"\" -- ''node_modules/*'')",
+      "Bash(# Search for any hardcoded URLs that look like real Zulip instances git log --all -p --full-diff -- ''src/'')",
+      "Bash(# Check the node_modules committed content for any secrets \\(just zod, but let''s be sure\\) git show 68d885e -p -- ''node_modules/.package-lock.json'')",
+      "Bash(# Check for any git-tracked .env or secret files in current working tree git ls-files)",
+      "Read(//dev/**)",
+      "Bash(# Double check: search entire git history for Zulip API key format \\(32-char hex string which is Zulip''s format\\) git log --all -p --full-diff)",
+      "Bash(# Final check: look for any webhooks, callback URLs with secrets, or AWS/GCP/Azure config git log --all -p --full-diff)",
+      "Bash(# Check if there are any base64-encoded secrets in config files grep -rnE ''btoa|atob|Buffer\\\\.from.*base64'' /opt/openclaw-dev/plugins/openclaw-zulip/src/)",
+      "Bash(# Check if remote branches have the node_modules commit git log --all --oneline --remotes)"
+    ]
+  }
+}
