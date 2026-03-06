@@ -80,12 +80,13 @@ export type ZulipAccountConfig = {
   streams?: string[];
 
   /**
-   * Reply to every message in monitored streams/topics (default: true).
+   * Reply to every message in monitored streams/topics.
    *
-   * When false, OpenClaw may act "trigger-only" depending on global group policy
-   * and mention detection.
+   * - `true`  — auto-reply in all monitored streams (default).
+   * - `false` — mention-only; never auto-reply.
+   * - `string[]` — auto-reply only in the listed streams; mention-only elsewhere.
    */
-  alwaysReply?: boolean;
+  alwaysReply?: boolean | string[];
 
   /**
    * Default topic when target omits a topic.

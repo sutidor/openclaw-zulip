@@ -60,6 +60,8 @@ export type ResolvedZulipAccount = {
   apiKeySource: ZulipTokenSource;
   streams: string[];
   alwaysReply: boolean;
+  /** Streams where auto-reply is active. Empty = all monitored streams. */
+  autoReplyStreams: string[];
   defaultTopic: string;
   reactions: ResolvedZulipReactions;
   textChunkLimit: number;
@@ -83,6 +85,8 @@ const DEFAULT_REACTIONS: ResolvedZulipReactions = {
     stages: {
       queued: "eyes",
       processing: "eyes",
+      toolRunning: "gear",
+      retrying: "repeat",
       success: "check_mark",
       partialSuccess: "warning",
       failure: "warning",
@@ -231,7 +235,16 @@ export function resolveZulipAccount(params: {
   const apiKeySource: ZulipTokenSource = configKey ? "config" : envKey ? "env" : "none";
 
   const streams = normalizeStreamAllowlist(merged.streams);
-  const alwaysReply = merged.alwaysReply !== false && DEFAULT_ALWAYS_REPLY;
+  const rawAlwaysReply = merged.alwaysReply;
+  let alwaysReply: boolean;
+  let autoReplyStreams: string[];
+  if (Array.isArray(rawAlwaysReply)) {
+    autoReplyStreams = normalizeStreamAllowlist(rawAlwaysReply);
+    alwaysReply = autoReplyStreams.length > 0;
+  } else {
+    alwaysReply = rawAlwaysReply !== false && DEFAULT_ALWAYS_REPLY;
+    autoReplyStreams = [];
+  }
   const defaultTopic = normalizeTopic(merged.defaultTopic) || DEFAULT_TOPIC;
   const reactions = resolveReactions(merged.reactions);
   const textChunkLimit =
@@ -249,6 +262,7 @@ export function resolveZulipAccount(params: {
     apiKeySource,
     streams,
     alwaysReply,
+    autoReplyStreams,
     defaultTopic,
     reactions,
     textChunkLimit,
@@ -260,4 +274,11 @@ export function listEnabledZulipAccounts(cfg: OpenClawConfig): ResolvedZulipAcco
   return listZulipAccountIds(cfg)
     .map((accountId) => resolveZulipAccount({ cfg, accountId }))
     .filter((account) => account.enabled);
+}
+
+export function isAutoReplyStream(account: ResolvedZulipAccount, stream: string): boolean {
+  if (!account.alwaysReply) return false;
+  if (account.autoReplyStreams.length === 0) return true;
+  const normalized = normalizeStreamName(stream);
+  return account.autoReplyStreams.some((s) => normalizeStreamName(s) === normalized);
 }

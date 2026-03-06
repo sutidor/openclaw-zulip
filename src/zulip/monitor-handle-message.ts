@@ -3,8 +3,8 @@ import { createReplyPrefixOptions } from "openclaw/plugin-sdk";
 import { clearDispatchTracking, hasToolSentToTopic } from "./dispatch-state.js";
 import { normalizeMentions } from "./mention-cache.js";
 import {
+  isAutoReplyStream,
   listEnabledZulipAccounts,
-  resolveDefaultZulipAccountId,
   type ZulipReactionWorkflowStage,
 } from "./accounts.js";
 import {
@@ -27,7 +27,7 @@ import { sendZulipStreamMessage } from "./send.js";
 import { downloadZulipUploads } from "./uploads.js";
 import { sleep } from "./sleep.js";
 import { waitForDispatcherIdleWithTimeout } from "./backoff.js";
-import { buildKeepaliveMessageContent, createBestEffortShutdownNoticeSender, startPeriodicKeepalive } from "./keepalive.js";
+import { createBestEffortShutdownNoticeSender, startPeriodicKeepalive } from "./keepalive.js";
 import { deliverReply } from "./deliver.js";
 import { shouldIgnoreMessage, startTypingRefresh, stopTypingIndicator } from "./messaging.js";
 import {
@@ -139,21 +139,20 @@ export async function handleMessage(
   opts.statusSink?.({ lastInboundAt: Date.now() });
 
   // --- Mention gate ---
-  // Non-alwaysReply accounts: only respond when @mentioned.
-  if (!account.alwaysReply && !wasMentioned) {
+  const isAutoReply = isAutoReplyStream(account, stream);
+
+  // Non-auto-reply context: only respond when @mentioned.
+  if (!isAutoReply && !wasMentioned) {
     logger.debug?.(
-      `[${account.accountId}] skipping message in ${stream}#${topic} (not mentioned)`,
+      `[${account.accountId}] skipping message in ${stream}#${topic} (not mentioned, no auto-reply)`,
     );
     return;
   }
 
-  // Coordinator routing: when no bot is @mentioned, only the coordinator
-  // (default account) replies. Non-coordinator alwaysReply accounts skip.
-  const isCoordinator = account.accountId === resolveDefaultZulipAccountId(cfg);
-  if (account.alwaysReply && !wasMentioned) {
-    // Check if another mention-only bot is @mentioned — defer to it.
+  // Auto-reply but not mentioned: defer if another bot IS @mentioned.
+  if (isAutoReply && !wasMentioned) {
     const otherAccounts = listEnabledZulipAccounts(cfg).filter(
-      (a) => a.accountId !== account.accountId && !a.alwaysReply,
+      (a) => a.accountId !== account.accountId,
     );
     for (const other of otherAccounts) {
       const otherRoute = core.channel.routing.resolveAgentRoute({
@@ -163,20 +162,15 @@ export async function handleMessage(
         peer: { kind: "channel" as const, id: stream },
       });
       const otherRegexes = core.channel.mentions.buildMentionRegexes(cfg, otherRoute.agentId);
-      if (core.channel.mentions.matchesMentionPatterns(cleanedForMentions, otherRegexes)
-          || mentionMatchesEmailPrefix(other.email)) {
+      if (
+        core.channel.mentions.matchesMentionPatterns(cleanedForMentions, otherRegexes) ||
+        mentionMatchesEmailPrefix(other.email)
+      ) {
         logger.debug?.(
           `[${account.accountId}] deferring to ${other.accountId} in ${stream}#${topic}`,
         );
         return;
       }
-    }
-    // No specific bot mentioned — only coordinator replies.
-    if (!isCoordinator) {
-      logger.debug?.(
-        `[${account.accountId}] skipping unmentioned message in ${stream}#${topic} (not coordinator)`,
-      );
-      return;
     }
   }
   // --- End mention gate ---
@@ -329,7 +323,7 @@ export async function handleMessage(
     ConversationLabel: `${stream}#${topic}`,
     GroupSubject: stream,
     GroupChannel: `#${stream}`,
-    GroupSystemPrompt: account.alwaysReply
+    GroupSystemPrompt: isAutoReply
       ? "Always reply to every message in this Zulip stream/topic.\n\nIMPORTANT: If the message is a simple acknowledgment with nothing actionable (examples: 'thanks', 'ok', 'got it', 'noted', 'sure', 'np', 'cool', 'great', 'thx', 'ty', 'perfect', 'awesome', 'sounds good', 'will do', 'roger', 'hmm'), respond with EXACTLY the text NO_REPLY and nothing else — no quotes, no markdown, just the raw text NO_REPLY.\n\nDelegation: When delegating to another agent, @mention them in your reply text (e.g. @amira-bot). Do NOT use the message send tool for this — write exactly one reply that includes the @mention.\n\nTo start a new topic, prefix your reply with: [[zulip_topic: <topic>]]"
       : undefined,
     Provider: "zulip" as const,
@@ -459,14 +453,11 @@ export async function handleMessage(
     : dispatcher;
 
   const stopKeepalive = startPeriodicKeepalive({
-    sendPing: async (elapsedMs) => {
-      await sendZulipStreamMessage({
-        auth,
-        stream,
-        topic,
-        content: buildKeepaliveMessageContent(elapsedMs),
-        abortSignal: deliverySignal,
-      });
+    sendPing: async (_elapsedMs) => {
+      if (reactionController) {
+        await reactionController.transition("toolRunning", { abortSignal: deliverySignal });
+      }
+      // No visible message — reaction emoji is the keepalive signal.
     },
   });
 
