@@ -157,7 +157,7 @@ export function dispatchSyntheticReactionContext(
   const target = `stream:${params.stream}#${params.topic}`;
   const ctxPayload = core.channel.reply.finalizeInboundContext({
     Body: params.body,
-    RawBody: params.body,
+    RawBody: params.rawBody || params.body,
     CommandBody: params.body,
     From: `zulip:user:${params.userId}`,
     To: target,
