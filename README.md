@@ -24,7 +24,7 @@ scripts/    Diagnostic helpers for querying Zulip (see scripts/README.md)
 Development workflow artifacts (CRs, PRDs, specs, ADRs, tasks) are managed
 separately at:
 
-    /opt/openclaw-dev/docs/openclaw-zulip/
+    /opt/claude-dev-workflow/projects/openclaw-zulip/
 
 See `WORKFLOW.md` in that directory for how they fit together.
 

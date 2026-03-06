@@ -16,11 +16,11 @@ export const FRESHNESS_INTERVAL_MS = 30_000;
 /** Default timeout waiting for dispatcher to flush queued replies. */
 export const DEFAULT_DISPATCH_WAIT_FOR_IDLE_TIMEOUT_MS = 30_000;
 
-/** Delay before first keepalive ping. */
-export const KEEPALIVE_INITIAL_DELAY_MS = 25_000;
+/** Delay before first keepalive ping (reaction-based, no visible message). */
+export const KEEPALIVE_INITIAL_DELAY_MS = 60_000;
 
 /** Interval between subsequent keepalive pings. */
-export const KEEPALIVE_REPEAT_INTERVAL_MS = 60_000;
+export const KEEPALIVE_REPEAT_INTERVAL_MS = 90_000;
 
 /** Message posted to Zulip when replaying a recovery checkpoint. */
 export const ZULIP_RECOVERY_NOTICE = "🔄 Gateway restarted - resuming the previous task now...";

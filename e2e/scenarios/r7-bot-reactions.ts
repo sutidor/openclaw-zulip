@@ -16,16 +16,16 @@
  *   reaction pattern as for human messages).
  */
 
-import type { ZulipClient } from "../zulip-client.js";
 import type { E2EConfig } from "../config.js";
 import {
+  type ZulipClient,
+  type ScenarioResult,
   uniqueTopic,
   waitForMessages,
   waitForReaction,
   sleep,
   isFrom,
-} from "../helpers.js";
-import type { ScenarioResult } from "../helpers.js";
+} from "@openclaw/e2e";
 
 const WORKFLOW_EMOJIS = ["eyes", "check", "warning"];
 

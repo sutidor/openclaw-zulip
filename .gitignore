@@ -14,5 +14,8 @@ node_modules/
 *.swo
 *~
 
+# Claude Code worktrees
+.claude/worktrees/
+
 # Build output
 dist/

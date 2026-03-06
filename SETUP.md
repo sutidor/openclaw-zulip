@@ -195,8 +195,9 @@ npm run test:e2e r1 r4    # specific scenarios
 After any config change, reload the gateway:
 
 ```bash
-scripts/gateway-reload.sh        # default 30s wait
-scripts/gateway-reload.sh 20     # custom wait
+~/scripts/gateway-reload.sh        # config reload (default 30s wait)
+~/scripts/gateway-reload.sh 20     # custom wait
+~/scripts/gateway-redeploy.sh      # full redeploy (image/compose changes + relay proxy)
 ```
 
 Verify monitors started:

@@ -23,6 +23,12 @@ import { handleReaction as handleReactionImpl } from "./monitor-handle-reaction.
 import { replayPendingCheckpoints as replayPendingCheckpointsImpl } from "./monitor-checkpoint-replay.js";
 import { pollStreamQueue } from "./monitor-poll.js";
 
+/**
+ * Tracks whether the restart notice has already been posted in this process.
+ * Prevents health-monitor socket recycling from sending duplicate notices.
+ */
+const startupNoticeSent = new Set<string>();
+
 export async function monitorZulipProvider(
   opts: MonitorZulipOptions,
 ): Promise<{ stop: () => void }> {
@@ -136,13 +142,17 @@ export async function monitorZulipProvider(
 
     // Send a one-time startup notice.  If restartNoticeAccount is set, only
     // that account posts the notice; otherwise fall back to alwaysReply accounts.
+    // Uses startupNoticeSent to suppress duplicate notices from health-monitor
+    // socket recycling (stale-socket restarts within the same process).
     const zulipCfg = cfg.channels?.zulip as Record<string, unknown> | undefined;
     const startupNoticeTopic = zulipCfg?.restartNoticeTopic as string | undefined;
     const restartNoticeAccount = zulipCfg?.restartNoticeAccount as string | undefined;
+    const noticeKey = `${account.accountId}:${startupNoticeTopic ?? ""}`;
     const shouldPostNotice = restartNoticeAccount
       ? account.accountId === restartNoticeAccount
       : account.alwaysReply;
-    if (shouldPostNotice && startupNoticeTopic && plan.length > 0) {
+    if (shouldPostNotice && startupNoticeTopic && plan.length > 0 && !startupNoticeSent.has(noticeKey)) {
+      startupNoticeSent.add(noticeKey);
       sendZulipStreamMessage({
         auth,
         stream: plan[0].stream,

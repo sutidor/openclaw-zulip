@@ -33,16 +33,16 @@
  *   on a bot's own messages.
  */
 
-import type { ZulipClient } from "../zulip-client.js";
 import type { E2EConfig } from "../config.js";
 import {
+  type ZulipClient,
+  type ScenarioResult,
   uniqueTopic,
   waitForMessages,
   assertNoMessages,
   sleep,
   isFrom,
-} from "../helpers.js";
-import type { ScenarioResult } from "../helpers.js";
+} from "@openclaw/e2e";
 
 /** Each recognized reaction emoji and its semantic meaning. */
 const REACTION_EMOJIS = [

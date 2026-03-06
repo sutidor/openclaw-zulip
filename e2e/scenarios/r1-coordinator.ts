@@ -14,17 +14,17 @@
  *   coordinator).
  */
 
-import type { ZulipClient } from "../zulip-client.js";
 import type { E2EConfig } from "../config.js";
 import {
+  type ZulipClient,
+  type ScenarioResult,
   uniqueTopic,
   waitForMessages,
   assertNoMessages,
   sleep,
   isFrom,
   isFromBot,
-} from "../helpers.js";
-import type { ScenarioResult } from "../helpers.js";
+} from "@openclaw/e2e";
 
 export async function run(
   client: ZulipClient,

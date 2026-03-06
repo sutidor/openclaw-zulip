@@ -1,56 +1,19 @@
 /**
- * E2E test configuration.
+ * E2E test configuration for the Zulip plugin.
  * All real names/credentials come from environment variables.
  * Loads .env.e2e from project root if present.
  */
 
-import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { type BaseE2EConfig, loadEnvFile, required, optional } from "@openclaw/e2e";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-
-/** Load key=value pairs from a dotenv-style file into process.env. */
-function loadEnvFile(filePath: string): void {
-  let content: string;
-  try {
-    content = readFileSync(filePath, "utf-8");
-  } catch {
-    return; // file not found — silently skip
-  }
-  for (const line of content.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const eqIdx = trimmed.indexOf("=");
-    if (eqIdx < 1) continue;
-    const key = trimmed.slice(0, eqIdx).trim();
-    const value = trimmed.slice(eqIdx + 1).trim();
-    if (!(key in process.env)) {
-      process.env[key] = value;
-    }
-  }
-}
 
 // Load .env.e2e from project root (one level up from e2e/)
 loadEnvFile(resolve(__dirname, "..", ".env.e2e"));
 
-function required(name: string): string {
-  const value = process.env[name];
-  if (!value) throw new Error(`Missing required env var: ${name}`);
-  return value.trim();
-}
-
-function optional(name: string, fallback: string): string {
-  return process.env[name]?.trim() || fallback;
-}
-
-export type E2EConfig = {
-  /** Zulip instance base URL */
-  zulipUrl: string;
-  /** Sim-user email (acts as the human in scenarios) */
-  simUserEmail: string;
-  /** Sim-user API key */
-  simUserApiKey: string;
+export type E2EConfig = BaseE2EConfig & {
   /** Stream to run tests in */
   stream: string;
   /** Coordinator bot display name (for @mentions) */
@@ -61,14 +24,6 @@ export type E2EConfig = {
   specialistDisplayName: string;
   /** Specialist bot email (for identifying responses) */
   specialistEmail: string;
-  /** All bot emails (for filtering bot vs human messages) */
-  allBotEmails: string[];
-  /** Timeout in ms for waiting on expected responses */
-  responseTimeoutMs: number;
-  /** Timeout in ms for negative assertions (wait to confirm no response) */
-  negativeTimeoutMs: number;
-  /** Poll interval in ms when waiting for messages/reactions */
-  pollIntervalMs: number;
 };
 
 export function loadConfig(): E2EConfig {

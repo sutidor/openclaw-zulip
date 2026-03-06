@@ -12,7 +12,7 @@
       "Read(//dev/**)",
       "Bash(# Double check: search entire git history for Zulip API key format \\(32-char hex string which is Zulip''s format\\) git log --all -p --full-diff)",
       "Bash(# Final check: look for any webhooks, callback URLs with secrets, or AWS/GCP/Azure config git log --all -p --full-diff)",
-      "Bash(# Check if there are any base64-encoded secrets in config files grep -rnE ''btoa|atob|Buffer\\\\.from.*base64'' /opt/openclaw-dev/plugins/openclaw-zulip/src/)",
+      "Bash(# Check if there are any base64-encoded secrets in config files grep -rnE ''btoa|atob|Buffer\\\\.from.*base64'' /opt/openclaw-workspace/plugins/openclaw-zulip/src/)",
       "Bash(# Check if remote branches have the node_modules commit git log --all --oneline --remotes)"
     ]
   }
