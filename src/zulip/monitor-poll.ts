@@ -214,6 +214,10 @@ export async function pollStreamQueue(
         }
       }
 
+      // Every successful poll (even empty) proves the socket is alive — report
+      // lastEventAt so the gateway health-monitor doesn't flag us as stale.
+      mctx.opts.statusSink?.({ lastEventAt: Date.now() });
+
       // Defensive throttle: if Zulip responds immediately without any message payloads
       if (messages.length === 0 && reactionEvents.length === 0) {
         const jitterMs = Math.floor(Math.random() * 250);

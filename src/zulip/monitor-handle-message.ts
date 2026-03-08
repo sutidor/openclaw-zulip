@@ -136,7 +136,7 @@ export async function handleMessage(
     direction: "inbound",
     at: Date.now(),
   });
-  opts.statusSink?.({ lastInboundAt: Date.now() });
+  opts.statusSink?.({ lastInboundAt: Date.now(), lastEventAt: Date.now() });
 
   // --- Mention gate ---
   const isAutoReply = isAutoReplyStream(account, stream);
@@ -436,7 +436,7 @@ export async function handleMessage(
           abortSignal: deliverySignal,
         });
         successfulDeliveries += 1;
-        opts.statusSink?.({ lastOutboundAt: Date.now() });
+        opts.statusSink?.({ lastOutboundAt: Date.now(), lastEventAt: Date.now() });
         core.channel.activity.record({
           channel: "zulip",
           accountId: account.accountId,

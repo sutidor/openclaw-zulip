@@ -48,6 +48,7 @@ export type MonitorZulipOptions = {
   statusSink?: (patch: {
     lastInboundAt?: number;
     lastOutboundAt?: number;
+    lastEventAt?: number;
     lastError?: string;
   }) => void;
 };
