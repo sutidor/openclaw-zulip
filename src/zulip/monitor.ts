@@ -1,7 +1,7 @@
 import type { RuntimeEnv } from "openclaw/plugin-sdk";
 import { getZulipRuntime } from "../runtime.js";
 import { resolveZulipAccount } from "./accounts.js";
-import { createDedupeCache } from "./dedupe.js";
+import { createDedupeCache, type DedupeCache } from "./dedupe.js";
 import type { ZulipInFlightCheckpoint } from "./inflight-checkpoints.js";
 import { buildZulipQueuePlan } from "./queue-plan.js";
 import {
@@ -28,6 +28,18 @@ import { pollStreamQueue } from "./monitor-poll.js";
  * Prevents health-monitor socket recycling from sending duplicate notices.
  */
 const startupNoticeSent = new Set<string>();
+
+/**
+ * Dedupe caches keyed by accountId. Module-level so they survive
+ * health-monitor socket cycling (stopChannel → startChannel).
+ */
+const dedupeCacheByAccount = new Map<string, DedupeCache>();
+
+/** @internal — test-only reset for module-level state */
+export function _resetModuleStateForTest(): void {
+  startupNoticeSent.clear();
+  dedupeCacheByAccount.clear();
+}
 
 export async function monitorZulipProvider(
   opts: MonitorZulipOptions,
@@ -101,7 +113,12 @@ export async function monitorZulipProvider(
     updateMentionDisplayNames(mentionDisplayNames);
 
     // Dedupe cache prevents reprocessing messages after queue re-registration or reconnect.
-    const dedupe = createDedupeCache({ ttlMs: 5 * 60 * 1000, maxSize: 500 });
+    // Module-level so it survives health-monitor socket cycling.
+    let dedupe = dedupeCacheByAccount.get(account.accountId);
+    if (!dedupe) {
+      dedupe = createDedupeCache({ ttlMs: 5 * 60 * 1000, maxSize: 500 });
+      dedupeCacheByAccount.set(account.accountId, dedupe);
+    }
 
     // Track DM senders we've already notified to avoid spam.
     const dmNotifiedSenders = new Set<number>();

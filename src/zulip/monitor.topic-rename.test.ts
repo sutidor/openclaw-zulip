@@ -38,6 +38,7 @@ vi.mock("./accounts.js", () => ({
   resolveZulipAccount: mocks.resolveZulipAccount,
   listEnabledZulipAccounts: () => [mocks.resolveZulipAccount()],
   resolveDefaultZulipAccountId: () => "default",
+  isAutoReplyStream: () => true,
 }));
 
 vi.mock("./client.js", () => ({
@@ -76,7 +77,7 @@ vi.mock("./inflight-checkpoints.js", () => ({
   buildZulipCheckpointId: mocks.buildZulipCheckpointId,
 }));
 
-import { monitorZulipProvider } from "./monitor.js";
+import { monitorZulipProvider, _resetModuleStateForTest } from "./monitor.js";
 
 type ZulipEventMessage = {
   id: number;
@@ -297,6 +298,7 @@ function makeMessage(messageId: number, topic: string): ZulipEventMessage {
 describe("monitorZulipProvider topic rename session continuity", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    _resetModuleStateForTest();
   });
 
   it("subscribes to update_message events and creates rename aliases", async () => {

@@ -18,6 +18,7 @@ vi.mock("./mention-cache.js", () => ({
 vi.mock("./accounts.js", () => ({
   listEnabledZulipAccounts: vi.fn(() => []),
   resolveDefaultZulipAccountId: vi.fn(() => "default"),
+  isAutoReplyStream: vi.fn(() => true),
 }));
 
 vi.mock("./inflight-checkpoints.js", () => ({
@@ -81,7 +82,7 @@ vi.mock("./normalize.js", () => ({
 import type { MonitorContext, ZulipEventMessage } from "./monitor-types.js";
 import { handleMessage } from "./monitor-handle-message.js";
 import { shouldIgnoreMessage } from "./messaging.js";
-import { listEnabledZulipAccounts, resolveDefaultZulipAccountId } from "./accounts.js";
+import { listEnabledZulipAccounts, resolveDefaultZulipAccountId, isAutoReplyStream } from "./accounts.js";
 import { hasToolSentToTopic, clearDispatchTracking } from "./dispatch-state.js";
 import { bestEffortReaction } from "./reaction-workflow.js";
 import { writeZulipInFlightCheckpoint, clearZulipInFlightCheckpoint } from "./inflight-checkpoints.js";
@@ -117,7 +118,7 @@ function makeMsg(overrides?: Partial<ZulipEventMessage>): ZulipEventMessage {
     stream_id: 5,
     subject: "general chat",
     content: "Hello bot!",
-    timestamp: 1700000000,
+    timestamp: Math.floor(Date.now() / 1000),
     ...overrides,
   };
 }
@@ -271,6 +272,60 @@ describe("handleMessage — early exits", () => {
   });
 });
 
+// spec: message-handling.md ## Message Age Guard
+describe("handleMessage — message age guard", () => {
+  it("skips messages older than MAX_MESSAGE_AGE_MS", async () => {
+    const mctx = makeMctx();
+    const core = mctx.core as unknown as MockCore;
+    const fifteenMinAgo = Math.floor((Date.now() - 15 * 60_000) / 1000);
+    await handleMessage(mctx, makeMsg({ timestamp: fifteenMinAgo }));
+    expect(core.channel.activity.record).not.toHaveBeenCalled();
+  });
+
+  it("processes messages younger than MAX_MESSAGE_AGE_MS", async () => {
+    const mctx = makeMctx();
+    const core = mctx.core as unknown as MockCore;
+    const fiveMinAgo = Math.floor((Date.now() - 5 * 60_000) / 1000);
+    await handleMessage(mctx, makeMsg({ timestamp: fiveMinAgo }));
+    expect(core.channel.activity.record).toHaveBeenCalled();
+  });
+
+  it("bypasses age guard for recovery checkpoint replays", async () => {
+    const mctx = makeMctx();
+    const core = mctx.core as unknown as MockCore;
+    const oneHourAgo = Math.floor((Date.now() - 60 * 60_000) / 1000);
+    await handleMessage(mctx, makeMsg({ timestamp: oneHourAgo }), {
+      recoveryCheckpoint: {
+        version: 1,
+        checkpointId: "default:42",
+        accountId: "default",
+        stream: "marcel-ai",
+        topic: "general chat",
+        messageId: 42,
+        senderId: "200",
+        senderName: "Human User",
+        cleanedContent: "Hello bot!",
+        body: "body",
+        sessionKey: "key",
+        from: "from",
+        to: "to",
+        wasMentioned: false,
+        createdAtMs: Date.now(),
+        updatedAtMs: Date.now(),
+        retryCount: 0,
+      },
+    });
+    expect(core.channel.activity.record).toHaveBeenCalled();
+  });
+
+  it("does not apply age guard when timestamp is missing", async () => {
+    const mctx = makeMctx();
+    const core = mctx.core as unknown as MockCore;
+    await handleMessage(mctx, makeMsg({ timestamp: undefined }));
+    expect(core.channel.activity.record).toHaveBeenCalled();
+  });
+});
+
 // spec: message-handling.md ## Mention Evaluation
 describe("handleMessage — mention evaluation", () => {
   it("processes message when alwaysReply is true and bot is coordinator", async () => {
@@ -283,6 +338,7 @@ describe("handleMessage — mention evaluation", () => {
   });
 
   it("skips when alwaysReply=false and not mentioned", async () => {
+    vi.mocked(isAutoReplyStream).mockReturnValueOnce(false);
     const mctx = makeMctx();
     mctx.account.alwaysReply = false;
     const core = mctx.core as unknown as MockCore;
@@ -339,6 +395,7 @@ describe("handleMessage — bot-to-bot filter", () => {
 // spec: message-handling.md ## Coordinator Routing
 describe("handleMessage — coordinator routing", () => {
   it("non-coordinator alwaysReply account skips unmentioned messages", async () => {
+    vi.mocked(isAutoReplyStream).mockReturnValueOnce(false);
     const mctx = makeMctx();
     mctx.account.accountId = "secondary";
     vi.mocked(resolveDefaultZulipAccountId).mockReturnValue("default");

@@ -38,6 +38,7 @@ vi.mock("./accounts.js", () => ({
   resolveZulipAccount: mocks.resolveZulipAccount,
   listEnabledZulipAccounts: () => [mocks.resolveZulipAccount()],
   resolveDefaultZulipAccountId: () => "default",
+  isAutoReplyStream: () => true,
 }));
 
 vi.mock("./client.js", () => ({
@@ -76,7 +77,7 @@ vi.mock("./inflight-checkpoints.js", () => ({
   buildZulipCheckpointId: mocks.buildZulipCheckpointId,
 }));
 
-import { monitorZulipProvider } from "./monitor.js";
+import { monitorZulipProvider, _resetModuleStateForTest } from "./monitor.js";
 import { ZULIP_RECOVERY_NOTICE } from "./constants.js";
 
 type ZulipEventMessage = {
@@ -336,6 +337,7 @@ function createHarness(params?: {
 describe("monitorZulipProvider recovery checkpoints", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    _resetModuleStateForTest();
   });
 
   it("writes then clears the replayed in-flight checkpoint on success", async () => {

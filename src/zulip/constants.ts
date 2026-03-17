@@ -25,5 +25,8 @@ export const KEEPALIVE_REPEAT_INTERVAL_MS = 90_000;
 /** Message posted to Zulip when replaying a recovery checkpoint. */
 export const ZULIP_RECOVERY_NOTICE = "🔄 Gateway restarted - resuming the previous task now...";
 
+/** Maximum age of a message (in ms) before it is considered stale and skipped. */
+export const MAX_MESSAGE_AGE_MS = 10 * 60_000;
+
 /** Regex matching NO_REPLY sentinel values emitted by the LLM to suppress delivery. */
 export const NO_REPLY_PATTERN = /^(\[?\s*NO[-_\s]?REPLY\s*\]?)$/i;

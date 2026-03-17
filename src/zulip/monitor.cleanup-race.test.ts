@@ -38,6 +38,7 @@ vi.mock("./accounts.js", () => ({
   resolveZulipAccount: mocks.resolveZulipAccount,
   listEnabledZulipAccounts: () => [mocks.resolveZulipAccount()],
   resolveDefaultZulipAccountId: () => "default",
+  isAutoReplyStream: () => true,
 }));
 
 vi.mock("./client.js", () => ({
@@ -76,12 +77,13 @@ vi.mock("./inflight-checkpoints.js", () => ({
   buildZulipCheckpointId: mocks.buildZulipCheckpointId,
 }));
 
-import { monitorZulipProvider } from "./monitor.js";
+import { monitorZulipProvider, _resetModuleStateForTest } from "./monitor.js";
 
 // spec: message-handling.md ## Cleanup
 describe("monitorZulipProvider cleanup race", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    _resetModuleStateForTest();
     mocks.loadZulipInFlightCheckpoints.mockResolvedValue([]);
     mocks.isZulipCheckpointStale.mockReturnValue(false);
     mocks.prepareZulipCheckpointForRecovery.mockImplementation(

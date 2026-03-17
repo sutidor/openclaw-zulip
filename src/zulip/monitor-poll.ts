@@ -119,13 +119,20 @@ export async function pollStreamQueue(
               abortSignal,
             });
             if (recent.result === "success" && recent.messages) {
+              let caught = 0;
               for (const msg of recent.messages) {
                 if (typeof msg.id === "number" && msg.id > lastSeenMsgId) {
                   lastSeenMsgId = msg.id;
+                  caught++;
+                  throttledHandleMessage(msg).catch((err) => {
+                    runtime.error?.(`zulip: catchup message failed: ${String(err)}`);
+                  });
                 }
-                throttledHandleMessage(msg).catch((err) => {
-                  runtime.error?.(`zulip: catchup message failed: ${String(err)}`);
-                });
+              }
+              if (caught > 0) {
+                logger.warn(
+                  `[zulip:${account.accountId}] re-registration catchup recovered ${caught} missed message(s) in stream "${stream}"`,
+                );
               }
             }
           } catch (catchupErr) {
@@ -149,6 +156,11 @@ export async function pollStreamQueue(
           lastEventId = evt.id;
         }
       }
+
+      // Every successful poll (even empty) proves the socket is alive — report
+      // lastEventAt before handler dispatch so long-running handlers don't
+      // prevent the health-monitor from seeing liveness.
+      mctx.opts.statusSink?.({ lastEventAt: Date.now() });
 
       for (const evt of list) {
         const rename = parseTopicRenameEvent(evt);
@@ -213,10 +225,6 @@ export async function pollStreamQueue(
           }).catch(() => undefined);
         }
       }
-
-      // Every successful poll (even empty) proves the socket is alive — report
-      // lastEventAt so the gateway health-monitor doesn't flag us as stale.
-      mctx.opts.statusSink?.({ lastEventAt: Date.now() });
 
       // Defensive throttle: if Zulip responds immediately without any message payloads
       if (messages.length === 0 && reactionEvents.length === 0) {

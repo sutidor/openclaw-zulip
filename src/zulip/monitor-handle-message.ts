@@ -11,6 +11,7 @@ import {
   DEFAULT_DISPATCH_WAIT_FOR_IDLE_TIMEOUT_MS,
   DELIVERY_GRACE_MS,
   DELIVERY_TIMEOUT_MS,
+  MAX_MESSAGE_AGE_MS,
   NO_REPLY_PATTERN,
 } from "./constants.js";
 import {
@@ -50,6 +51,15 @@ export async function handleMessage(
   }
   if (dedupe.check(String(msg.id))) {
     return;
+  }
+  // Skip stale messages to prevent activation on old messages during catchup,
+  // freshness recovery, or queue re-registration. Recovery checkpoints bypass
+  // this guard since they represent previously-accepted work.
+  if (!messageOptions?.recoveryCheckpoint && typeof msg.timestamp === "number") {
+    const ageMs = Date.now() - msg.timestamp * 1000;
+    if (ageMs > MAX_MESSAGE_AGE_MS) {
+      return;
+    }
   }
   const ignore = shouldIgnoreMessage({ message: msg, botUserId: mctx.botUserId, streams: account.streams });
   if (ignore.ignore) {
